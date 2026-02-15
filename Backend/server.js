@@ -1,49 +1,66 @@
-import WebSocket from "ws";
+import "dotenv/config";
+import { startBitcoinStream } from "./crypto/bitcoin.js";
+import { startEthereumStream } from "./crypto/ethereum.js";
+import express from "express";
+import cors from "cors";
+import { db } from "./utils/db.js";
 
-const ws = new WebSocket(
-  "wss://stream.binance.com:9443/ws/ethusdt@trade"
-);
+const app = express();
+const PORT = 3000;
 
-let currentMinute = null;
-let prices = [];
+app.use(cors());
+app.use(express.json());
 
-ws.on("open", () => {
-  console.log("✅ Connected to Binance ETH stream");
+
+console.log("🚀 Starting crypto streams...\n");
+
+startBitcoinStream();
+startEthereumStream();
+
+app.get("/", (req, res) => {
+  res.send("Server running on port 3000 🚀");
 });
 
-ws.on("message", (data) => {
-  const trade = JSON.parse(data.toString());
-  const price = parseFloat(trade.p);
+app.get("/api/market-data", async (req, res) => {
+  const { market, startDate, endDate, startTime, endTime, sortBy, order } = req.query;
 
-  const tradeMinute = Math.floor(trade.T / 60000); // minute bucket
+  console.log("API HIT");
 
-  // New minute → calculate previous minute movement
-  if (currentMinute !== null && tradeMinute !== currentMinute) {
-    calculateMovement(prices);
-    prices = []; // reset for new minute
+  const table = market === "eth" ? "eth_1s_data" : "btc_1s_data";
+
+  let conditions = [];
+  let values = [];
+
+  if (startDate && startTime) {
+    values.push(`${startDate} ${startTime}:00`);
+    conditions.push(`ts >= $${values.length}`);
   }
 
-  currentMinute = tradeMinute;
-  prices.push(price);
+  if (endDate && endTime) {
+    values.push(`${endDate} ${endTime}:59`);
+    conditions.push(`ts <= $${values.length}`);
+  }
+
+  const validSort = ["volume","buy_volume","sell_volume","move","move_percent","trade_count"];
+  const sortColumn = validSort.includes(sortBy) ? sortBy : "volume";
+  const sortOrder = order === "asc" ? "ASC" : "DESC";
+
+  let where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+
+  const query = `
+    SELECT *
+    FROM ${table}
+    ${where}
+    ORDER BY ${sortColumn} ${sortOrder}
+    LIMIT 1000
+  `;
+
+  const result = await db.query(query, values);
+  res.json(result.rows);
 });
 
-function calculateMovement(prices) {
-  if (prices.length < 2) return;
 
-  const open = prices[0];
-  const close = prices[prices.length - 1];
-  const high = Math.max(...prices);
-  const low = Math.min(...prices);
 
-  const absoluteMove = close - open;
-  const percentMove = ((absoluteMove / open) * 100).toFixed(4);
-
-  console.clear();
-  console.log("🟣 ETH 1-MIN MOVE");
-  console.log("Open :", open);
-  console.log("Close:", close);
-  console.log("High :", high);
-  console.log("Low  :", low);
-  console.log("Move :", absoluteMove.toFixed(2));
-  console.log("Move %:", percentMove + "%");
-}
+app.listen(PORT, () => {
+  console.log(`Server started at http://localhost:${PORT}`);
+});
