@@ -41,7 +41,8 @@ app.get("/api/market-data", async (req, res) => {
     conditions.push(`ts <= $${values.length}`);
   }
 
-  const validSort = ["volume","buy_volume","sell_volume","move","move_percent","trade_count"];
+  // Add "ts" to valid sort fields for time-based ordering
+  const validSort = ["volume","buy_volume","sell_volume","move","move_percent","trade_count","ts"];
   const sortColumn = validSort.includes(sortBy) ? sortBy : "volume";
   const sortOrder = order === "asc" ? "ASC" : "DESC";
 

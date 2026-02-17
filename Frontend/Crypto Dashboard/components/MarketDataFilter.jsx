@@ -81,6 +81,11 @@ const HackerTextField = styled(TextField)(({ theme }) => ({
       borderColor: colors.accent,
       boxShadow: `0 0 20px ${alpha(colors.accent, 0.6)}`,
     },
+    "&.Mui-disabled": {
+      color: alpha(colors.primary, 0.3),
+      backgroundColor: alpha(colors.terminal, 0.3),
+      borderColor: alpha(colors.primary, 0.15),
+    },
     "& fieldset": {
       borderColor: alpha(colors.primary, 0.3),
     },
@@ -90,6 +95,9 @@ const HackerTextField = styled(TextField)(({ theme }) => ({
     "&.Mui-focused fieldset": {
       borderColor: colors.accent,
     },
+    "&.Mui-disabled fieldset": {
+      borderColor: alpha(colors.primary, 0.15),
+    },
   },
   "& .MuiInputLabel-root": {
     fontFamily: "'Courier New', monospace",
@@ -97,9 +105,15 @@ const HackerTextField = styled(TextField)(({ theme }) => ({
     "&.Mui-focused": {
       color: colors.accent,
     },
+    "&.Mui-disabled": {
+      color: alpha(colors.secondary, 0.3),
+    },
   },
   "& .MuiSelect-icon": {
     color: colors.primary,
+    "&.Mui-disabled": {
+      color: alpha(colors.primary, 0.3),
+    },
   },
   // Style the native date/time picker icons and calendar
   "& input[type='date']::-webkit-calendar-picker-indicator": {
@@ -253,6 +267,7 @@ export default function MarketDataFilter() {
   const [endTime, setEndTime] = useState("");
   const [sortBy, setSortBy] = useState("volume");
   const [order, setOrder] = useState("desc");
+  const [displayMode, setDisplayMode] = useState("sorted"); // "sorted" or "time"
 
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -261,8 +276,9 @@ export default function MarketDataFilter() {
   useEffect(() => {
     // Terminal text animation
     const messages = [
-      "CONNECTED TO DATABASE_",
-      "SYSTEM RUNNING_",
+      "INITIALIZING MARKET SCANNER_",
+      "CONNECTING TO DATABASE_",
+      "SYSTEM READY_",
     ];
     let index = 0;
     const interval = setInterval(() => {
@@ -286,8 +302,8 @@ export default function MarketDataFilter() {
         endDate,
         startTime,
         endTime,
-        sortBy,
-        order,
+        sortBy: displayMode === "sorted" ? sortBy : "ts",
+        order: displayMode === "sorted" ? order : "asc",
       };
 
       const res = await axios.get("http://localhost:3000/api/market-data", {
@@ -419,9 +435,23 @@ export default function MarketDataFilter() {
             <HackerTextField
               select
               fullWidth
+              label="DISPLAY MODE"
+              value={displayMode}
+              onChange={(e) => setDisplayMode(e.target.value)}
+            >
+              <MenuItem value="time">TIME ORDER</MenuItem>
+              <MenuItem value="sorted">SORTED DATA</MenuItem>
+            </HackerTextField>
+          </Grid>
+
+          <Grid item xs={12} md={3}>
+            <HackerTextField
+              select
+              fullWidth
               label="SORT PARAMETER"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
+              disabled={displayMode === "time"}
             >
               {sortFields.map((field) => (
                 <MenuItem key={field} value={field}>
@@ -438,6 +468,7 @@ export default function MarketDataFilter() {
               label="SORT ORDER"
               value={order}
               onChange={(e) => setOrder(e.target.value)}
+              disabled={displayMode === "time"}
             >
               <MenuItem value="asc">ASCENDING</MenuItem>
               <MenuItem value="desc">DESCENDING</MenuItem>
