@@ -62,4 +62,22 @@ async function saveETH(trades, second) {
       move, movePct
     ]
   );
+
+  // Emit live data to frontend
+    if (global.io) {
+      global.io.emit("eth_live", {
+        ts: new Date(second * 1000),
+        open,
+        high,
+        low,
+        close,
+        volume,
+        buy_volume: buyVol,
+        sell_volume: sellVol,
+        trade_count: trades.length,
+        move,
+        move_percent: movePct
+      });
+    }
+
 }

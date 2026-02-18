@@ -4,9 +4,17 @@ import { startEthereumStream } from "./crypto/ethereum.js";
 import express from "express";
 import cors from "cors";
 import { db } from "./utils/db.js";
+import http from "http";
+import { Server } from "socket.io";
 
 const app = express();
 const PORT = 3000;
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: { origin: "*" }
+});
+
+global.io = io; 
 
 app.use(cors());
 app.use(express.json());
@@ -62,6 +70,7 @@ app.get("/api/market-data", async (req, res) => {
 
 
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server started at http://localhost:${PORT}`);
 });
+
