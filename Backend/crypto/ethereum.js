@@ -1,6 +1,6 @@
 import WebSocket from "ws";
 import { db } from "../utils/db.js";
-import { setLatestETHPrice } from "../services/priceService.js";
+import { setLatestETHPrice, setBinanceState } from "../services/priceService.js";
 import { getATMStrike } from "../services/strikeService.js";
 
 export function startEthereumStream() {
@@ -13,7 +13,11 @@ export function startEthereumStream() {
 
   ws.on("open", () => {
     console.log("🟣 Ethereum stream connected");
+    setBinanceState("connected");
   });
+
+  ws.on("close", () => setBinanceState("disconnected"));
+  ws.on("error", () => setBinanceState("disconnected"));
 
   ws.on("message", async (data) => {
     const trade = JSON.parse(data.toString());

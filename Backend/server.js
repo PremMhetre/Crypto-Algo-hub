@@ -11,6 +11,7 @@ import { getPositions } from "./crypto/deltaPosition.js";
 import { closePosition, placeMarketOrder } from "./crypto/deltaOrder.js";
 import { cancelOrder } from "./crypto/deltaOrder.js";
 
+import dashboardRouter from "./routes/dashboard.js";
 import { startCollector } from "./crypto/collector.js";
 import { startBatchInserter } from "./crypto/batchInserter.js";
 import { getLatestETHPrice } from "./services/priceService.js";
@@ -30,6 +31,7 @@ global.io = io;
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use("/api/dashboard", dashboardRouter);
 
 await refreshProducts();
 console.log("🚀 Starting crypto streams...\n");
